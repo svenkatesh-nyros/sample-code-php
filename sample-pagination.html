@@ -1,0 +1,122 @@
+<html>
+<head>
+<title>Pagination playground</title>
+<script type="text/javascript" language="javascript">
+function submit_it()
+<!--
+{
+document.limit.submit()
+}
+-->
+</script>
+<style type="text/css" language="css">
+<!--
+/* it's just style... use your own; mine sucks. */
+a:visited { color:blue; text-decoration:none; }
+a:hover { color:blue; text-decoration:underline; }
+a:link { color:blue; text-decoration:none; }
+.button { padding:0px 3px 3px 5px; border:solid 1px black; margin-left:2px; }
+-->
+</style>
+</head>
+<body>
+ 
+<?php
+
+    require_once("inc/db_info.inc");        // Or wherever you keep your db connection config
+    $set_limit_min = 5;
+    $set_limit_max = 30;
+    $set_mark_min  = 3; 
+    $set_mark_max  = 9;
+
+    $table = '';                            
+    $fields = '';
+ 
+    $limit = (isset($_REQUEST['limit']))? $_REQUEST['limit'] : 'UNDEF';
+    $page  = (isset($_REQUEST['page']))? $_REQUEST['page'] : '1' ;
+    $mark  = (isset($_REQUEST['mark']))? $_REQUEST['mark'] : 'UNDEF';
+    $query = "SELECT COUNT(*) FROM $table";
+    $result = mysql_query($query);
+    $total_items = mysql_result($result, 0);
+ 
+ 
+    if((is_numeric($limit) == false) || ($limit < $set_limit_min) || ($limit > $set_limit_max)) {
+           $limit = $set_limit_min;
+    }
+    if((!$page) || (is_numeric($page) == false) || ($page < 0) || ($page > $total_items)) {
+            $page = 1;
+    }
+    if((!$mark) || (is_numeric($mark) == false) || ($mark < $set_mark_min) || ($mark > $set_mark_max)) {
+            $mark = $set_mark_min;
+    }
+ 
+
+
+    echo "<form name="limit" method="get" action="index.php">n
+            <p>Maximum results per page? <select name="limit" onChange="submit_it()">n";
+    for($x = $set_limit_min; $x <= $set_limit_max; $x += 5) {
+            $s = ($x == "$limit")? ' selected' : '';
+            echo "<option$s>$x</option>n";
+    }
+    echo "</select></p>n";
+    echo "<p>Maximum width for pagination? <select name="mark" onChange="submit_it()">n";
+    for($x = $set_mark_min; $x <= $set_mark_max; $x += 3) {
+            $m = ($x == $mark)? ' selected' : '';
+            echo "<option$m>$x</option>n";
+    }
+ 
+    echo "</select></p>n";
+    echo "</form>n<br /><br />";
+ 
+    $ff = $mark + 2;
+    $total_pages = ceil($total_items / $limit);
+    $set_limit   = $page * $limit - ($limit);
+    $query = "SELECT $fields FROM $table LIMIT $set_limit, $limit";
+    $result = mysql_query($query)or die(mysql_error());
+    if(!$result) {
+            die(mysql_error());
+    }
+    $err = mysql_num_rows($result);
+    if($err == 0) {
+            die("No matches.");
+    }
+    while($results = mysql_fetch_assoc($log_res)) {
+            // This is where you grab your results from the query and
+            // and format them. This next line is just an example of what
+            // that might look like.
+            echo("item: ".$results['id']."<br />n");
+    }
+ 
+    // begin truncated pagination -->
+    $noearly = ($page <= ($mark + 1))? 'true':'false';
+    $nolate  = ($page >= ($total_pages - $mark))? 'true':'false';
+    if($noearly == "true") {
+            for($i = 1; $i < $page; $i++) {
+                    echo "<a href="index.php?limit=$limit&page=$i&mark=$mark">$i </a>n";
+            }
+    } else {
+            echo "<a href="index.php?mark=$mark&page=1&limit=$limit" class="button">|< </a>"; 
+            $pagerw = (($page -$ff) < 1)? '1': ($page - $ff);
+            echo "<a class="button" href="index.php?mark=$mark&page=$pagerw"><<</a>n";
+            for($i = $page - $mark +2; $i < $page; $i++) {
+                    echo "<a href="index.php?mark=$mark&page=$i&limit=$limit"> $i </a>";
+            }
+    }
+ 
+    echo "<b>$page</b>n ";
+ 
+    if($nolate == "true") {
+        for($i = $page + 1; $i <= $total_pages; $i++) {
+                echo "<a href="index.php?page=$i&mark=$mark&limit=$limit">$i </a>n";
+        }
+    } else {
+        for($i = $page + 1; $i <= $page + $mark -2; $i++) {
+                echo "<a href="index.php?mark=$mark&page=$i&limit=$limit"> $i </a>";
+        }
+        $ffmark = (($page + $ff) > $total_pages)? $total_pages : ($page + $ff);
+        echo "<a class="button" href="index.php?limit=$limit&mark=$mark&page=$ffmark">>></a>n 
+        <a href="index.php?mark=$mark&page=$total_pages&limit=$limit" class="button"> >| </a>";
+    }
+?>
+</body>
+</html>
